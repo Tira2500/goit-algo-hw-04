@@ -1,4 +1,5 @@
 import argparse
+import shutil
 from pathlib import Path
 
 
@@ -22,19 +23,32 @@ def parse_arguments():
     return parser.parse_args()
 
 
+def copy_file(file_path, destination):
+    """Копіює файл до піддиректорії за його розширенням."""
+    extension = file_path.suffix.lstrip(".").lower()
+    if not extension:
+        extension = "no_extension"
+
+    target_dir = destination / extension
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    shutil.copy2(file_path, target_dir / file_path.name)
+    print(f"  [OK] {file_path.name} -> {extension}/")
+
+
 def read_directory(source, destination):
-    """Рекурсивно читає директорію та виводить всі файли."""
+    """Рекурсивно читає директорію та копіює файли."""
     try:
         for item in source.iterdir():
             if item.is_dir():
-                print(f"  📁 Директорія: {item.name}")
-                read_directory(item, destination)  # рекурсивний виклик
+                print(f"  [DIR]  {item.name}")
+                read_directory(item, destination)
             elif item.is_file():
-                print(f"  📄 Файл: {item.name}")
+                copy_file(item, destination)
     except PermissionError:
-        print(f"  ❌ Помилка доступу: {source}")
+        print(f"  [ERR] Помилка доступу: {source}")
     except Exception as e:
-        print(f"  ❌ Помилка: {e}")
+        print(f"  [ERR] Помилка: {e}")
 
 
 def main():
@@ -46,11 +60,14 @@ def main():
     print(f"Призначення : {destination}")
 
     if not source.exists() or not source.is_dir():
-        print(f"❌ Директорія не існує: {source}")
+        print(f"[ERR] Директорія не існує: {source}")
         return
 
-    print("\nСканування файлів:")
+    destination.mkdir(parents=True, exist_ok=True)
+
+    print("\nКопіювання файлів:")
     read_directory(source, destination)
+    print("\n[DONE] Готово!")
 
 
 if __name__ == "__main__":
